@@ -187,53 +187,104 @@
             async saveTokenAndRedirect(loginData) {
                 try {
                     this.updateProgress(70, 'Preparando redirección...');
-                    console.log('Construyendo URL con datos de login...');
+                    console.log('Configurando sesión con datos de login...');
 
-                    // Construir URL con todos los datos necesarios
-                    const redirectUrl = new URL('https://app.flamecol.com/');
-                    
-                    // Agregar parámetros especiales para auto-login
-                    redirectUrl.searchParams.set('nfc_token', loginData.token);
-                    redirectUrl.searchParams.set('nfc_name', loginData.user.name);
-                    redirectUrl.searchParams.set('nfc_user', loginData.user.user.toString());
-                    redirectUrl.searchParams.set('nfc_yard', loginData.user.yard);
-                    redirectUrl.searchParams.set('nfc_currentYard', loginData.user.currentYard.toString());
-                    redirectUrl.searchParams.set('nfc_listYards', loginData.user.listYards.toString());
-                    redirectUrl.searchParams.set('nfc_roles', JSON.stringify(loginData.roles));
-                    redirectUrl.searchParams.set('nfc_permissions', JSON.stringify(loginData.permissions));
-                    redirectUrl.searchParams.set('nfc_menu', JSON.stringify(loginData.menu));
-
-                    this.updateProgress(90, 'Verificando datos...');
-                    console.log('URL de redirección construida:', redirectUrl.toString().substring(0, 100) + '...');
-
-                    // Éxito
-                    this.updateProgress(100, '¡Listo!');
-                    this.showSuccess('Sesión iniciada correctamente');
-
+                    // Mostrar datos del usuario
                     this.result.innerHTML += `
                         <div style="margin-top: 10px; opacity: 0.9;">
                             👤 ${loginData.user.name}<br>
                             📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Redirigiendo en 3 segundos...
+                            🔄 Configurando sesión...
                         </div>
                     `;
 
-                    // Redirigir con los datos
-                    let countdown = 3;
-                    const timer = setInterval(() => {
-                        countdown--;
-                        this.result.querySelector('div:last-child').innerHTML = `
-                            👤 ${loginData.user.name}<br>
-                            📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Redirigiendo en ${countdown} segundos...
-                        `;
-                        
-                        if (countdown <= 0) {
-                            clearInterval(timer);
-                            console.log('Redirigiendo con datos NFC...');
-                            window.location.replace(redirectUrl.toString());
+                    this.updateProgress(80, 'Creando iframe...');
+
+                    // Crear iframe oculto para configurar localStorage
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = 'https://app.flamecol.com/';
+                    document.body.appendChild(iframe);
+
+                    // Función para configurar localStorage cuando el iframe cargue
+                    iframe.onload = () => {
+                        try {
+                            console.log('📦 Iframe cargado, configurando localStorage...');
+                            
+                            const iframeWindow = iframe.contentWindow;
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            
+                            // Verificar acceso al iframe
+                            if (!iframeWindow || !iframeWindow.localStorage) {
+                                throw new Error('No se puede acceder al localStorage del iframe');
+                            }
+
+                            this.updateProgress(90, 'Configurando datos...');
+
+                            // Configurar localStorage en el iframe
+                            iframeWindow.localStorage.clear();
+                            iframeWindow.localStorage.setItem('tokenMC', loginData.token);
+                            iframeWindow.localStorage.setItem('nameMC', loginData.user.name);
+                            iframeWindow.localStorage.setItem('userMC', loginData.user.user.toString());
+                            iframeWindow.localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
+                            iframeWindow.localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
+                            iframeWindow.localStorage.setItem('yardMC', loginData.user.yard);
+                            iframeWindow.localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
+                            iframeWindow.localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
+                            iframeWindow.localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
+
+                            console.log('✅ localStorage configurado en iframe:', {
+                                token: iframeWindow.localStorage.getItem('tokenMC') ? 'PRESENTE' : 'FALTA',
+                                name: iframeWindow.localStorage.getItem('nameMC'),
+                                items: iframeWindow.localStorage.length
+                            });
+
+                            this.updateProgress(100, '¡Listo!');
+                            this.showSuccess('Sesión configurada correctamente');
+
+                            // Actualizar mensaje y redirigir
+                            this.result.querySelector('div:last-child').innerHTML = `
+                                👤 ${loginData.user.name}<br>
+                                📱 Patio: ${loginData.user.currentYard}<br>
+                                🔄 Redirigiendo en 2 segundos...
+                            `;
+
+                            setTimeout(() => {
+                                console.log('🚀 Redirigiendo a Flamecol...');
+                                document.body.removeChild(iframe);
+                                window.location.replace('https://app.flamecol.com/');
+                            }, 2000);
+
+                        } catch (iframeError) {
+                            console.error('❌ Error configurando iframe:', iframeError);
+                            
+                            // Fallback: redirección directa con parámetros
+                            console.log('🔄 Usando fallback: redirección con parámetros...');
+                            document.body.removeChild(iframe);
+                            
+                            const redirectUrl = new URL('https://app.flamecol.com/');
+                            redirectUrl.searchParams.set('nfc_token', loginData.token);
+                            redirectUrl.searchParams.set('nfc_name', loginData.user.name);
+                            redirectUrl.searchParams.set('nfc_user', loginData.user.user.toString());
+                            
+                            this.result.querySelector('div:last-child').innerHTML = `
+                                👤 ${loginData.user.name}<br>
+                                📱 Patio: ${loginData.user.currentYard}<br>
+                                🔄 Redirigiendo (método alternativo)...
+                            `;
+                            
+                            setTimeout(() => {
+                                window.location.replace(redirectUrl.toString());
+                            }, 2000);
                         }
-                    }, 1000);
+                    };
+
+                    // Error cargando iframe
+                    iframe.onerror = () => {
+                        console.error('❌ Error cargando iframe');
+                        document.body.removeChild(iframe);
+                        throw new Error('Error cargando página de destino');
+                    };
 
                 } catch (error) {
                     throw new Error('Error preparando redirección: ' + error.message);
