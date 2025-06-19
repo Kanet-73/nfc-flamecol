@@ -186,139 +186,160 @@
 
             async saveTokenAndRedirect(loginData) {
                 try {
-                    this.updateProgress(70, 'Preparando redirección...');
-                    console.log('🚀 Generando solución alternativa...');
+                    this.updateProgress(70, 'Verificando credenciales...');
+                    console.log('✅ Login verificado exitosamente');
 
-                    // Mostrar datos del usuario
+                    // Mostrar confirmación
                     this.result.innerHTML += `
                         <div style="margin-top: 10px; opacity: 0.9;">
                             👤 ${loginData.user.name}<br>
                             📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Preparando acceso...
+                            ✅ Credenciales verificadas
                         </div>
                     `;
 
-                    this.updateProgress(80, 'Creando bookmarklet...');
+                    this.updateProgress(80, 'Abriendo Flamecol...');
 
-                    // Crear bookmarklet con los datos
-                    const bookmarkletCode = `
-                        javascript:(function(){
-                            try {
-                                console.log('🚀 Bookmarklet NFC ejecutado');
-                                const loginData = ${JSON.stringify(loginData)};
-                                
-                                // Verificar que estamos en Flamecol
-                                if (!window.location.hostname.includes('flamecol.com')) {
-                                    alert('Este bookmarklet solo funciona en app.flamecol.com');
-                                    return;
+                    // Abrir Flamecol con auto-login
+                    const popup = window.open('https://app.flamecol.com/', 'flamecol_login', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                    
+                    if (!popup) {
+                        throw new Error('Popup bloqueado. Permite popups y vuelve a intentar.');
+                    }
+
+                    this.updateProgress(90, 'Configurando auto-login...');
+
+                    // Script para auto-llenar el formulario
+                    const autoLoginScript = `
+                        console.log('🚀 Auto-login iniciado');
+                        
+                        function waitForElement(selector, callback, maxAttempts = 30) {
+                            let attempts = 0;
+                            const interval = setInterval(() => {
+                                attempts++;
+                                const element = document.querySelector(selector);
+                                if (element) {
+                                    clearInterval(interval);
+                                    callback(element);
+                                } else if (attempts >= maxAttempts) {
+                                    clearInterval(interval);
+                                    console.error('❌ Elemento no encontrado:', selector);
                                 }
+                            }, 500);
+                        }
+                        
+                        function performAutoLogin() {
+                            const userDoc = '${loginData.user.document}';
+                            const password = '${loginData.user.document}';
+                            
+                            console.log('🔍 Buscando formulario de login...');
+                            
+                            // Esperar a que cargue el formulario
+                            waitForElement('input[type="text"], input[placeholder*="documento"], input[placeholder*="usuario"]', (userInput) => {
+                                console.log('📝 Campo de usuario encontrado');
                                 
-                                // Configurar localStorage
-                                localStorage.clear();
-                                localStorage.setItem('tokenMC', loginData.token);
-                                localStorage.setItem('nameMC', loginData.user.name);
-                                localStorage.setItem('userMC', loginData.user.user.toString());
-                                localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
-                                localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
-                                localStorage.setItem('yardMC', loginData.user.yard);
-                                localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
-                                localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
-                                localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
-                                
-                                // Mostrar notificación
-                                const notification = document.createElement('div');
-                                notification.style.cssText = \`
-                                    position: fixed; top: 20px; right: 20px; z-index: 10000;
-                                    background: #4CAF50; color: white; padding: 15px 20px;
-                                    border-radius: 5px; font-family: Arial, sans-serif;
-                                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                                    animation: slideIn 0.3s ease-out;
-                                \`;
-                                notification.innerHTML = '✅ Sesión NFC activada: ' + loginData.user.name;
-                                document.body.appendChild(notification);
-                                
-                                // Recargar después de 2 segundos
-                                setTimeout(() => {
-                                    console.log('🔄 Recargando para activar sesión...');
-                                    window.location.reload();
-                                }, 2000);
-                                
-                            } catch (error) {
-                                console.error('❌ Error en bookmarklet:', error);
-                                alert('Error: ' + error.message);
-                            }
-                        })();
+                                waitForElement('input[type="password"], input[placeholder*="contraseña"], input[placeholder*="password"]', (passInput) => {
+                                    console.log('🔐 Campo de contraseña encontrado');
+                                    
+                                    waitForElement('button[type="submit"], button:contains("ENTRAR"), button:contains("Entrar"), .btn-primary, button[class*="btn"]', (submitBtn) => {
+                                        console.log('🎯 Botón de envío encontrado');
+                                        
+                                        try {
+                                            // Llenar campos
+                                            console.log('📝 Llenando credenciales...');
+                                            userInput.value = userDoc;
+                                            userInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                            userInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                            
+                                            passInput.value = password;
+                                            passInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                            passInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                            
+                                            // Esperar un momento y hacer click
+                                            setTimeout(() => {
+                                                console.log('🚀 Enviando formulario...');
+                                                
+                                                // Mostrar notificación
+                                                const notification = document.createElement('div');
+                                                notification.style.cssText = \`
+                                                    position: fixed; top: 20px; right: 20px; z-index: 10000;
+                                                    background: #4CAF50; color: white; padding: 15px 20px;
+                                                    border-radius: 5px; font-family: Arial, sans-serif;
+                                                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                                                \`;
+                                                notification.innerHTML = '🔑 Auto-login NFC: ${loginData.user.name}';
+                                                document.body.appendChild(notification);
+                                                
+                                                // Hacer click en el botón
+                                                submitBtn.click();
+                                                
+                                                console.log('✅ Formulario enviado automáticamente');
+                                                
+                                            }, 1000);
+                                            
+                                        } catch (error) {
+                                            console.error('❌ Error llenando formulario:', error);
+                                            alert('Error en auto-login: ' + error.message);
+                                        }
+                                    });
+                                });
+                            });
+                        }
+                        
+                        // Ejecutar cuando la página esté lista
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', performAutoLogin);
+                        } else {
+                            setTimeout(performAutoLogin, 1000);
+                        }
                     `;
 
-                    // Crear URL de bookmarklet (sin espacios ni saltos de línea)
-                    const bookmarkletUrl = bookmarkletCode.replace(/\s+/g, ' ').trim();
-
-                    this.updateProgress(90, 'Creando interfaz...');
+                    // Inyectar script cuando la ventana cargue
+                    popup.onload = () => {
+                        setTimeout(() => {
+                            try {
+                                console.log('💉 Inyectando script de auto-login...');
+                                
+                                // Crear script element
+                                const script = popup.document.createElement('script');
+                                script.textContent = autoLoginScript;
+                                popup.document.head.appendChild(script);
+                                
+                                console.log('✅ Script inyectado exitosamente');
+                                
+                            } catch (error) {
+                                console.error('❌ Error inyectando script:', error);
+                                console.log('⚠️ Fallback: Usuario deberá hacer login manual');
+                            }
+                        }, 2000);
+                    };
 
                     this.updateProgress(100, '¡Listo!');
-                    this.showSuccess('Acceso NFC configurado');
+                    this.showSuccess('Auto-login configurado');
 
-                    // Mostrar instrucciones y botones
                     this.result.querySelector('div:last-child').innerHTML = `
                         👤 ${loginData.user.name}<br>
                         📱 Patio: ${loginData.user.currentYard}<br>
-                        ✅ Datos preparados
+                        🚀 Auto-login en proceso...
                     `;
 
-                    // Agregar interfaz con opciones
-                    this.result.innerHTML += `
-                        <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
-                            <h3 style="margin: 0 0 15px 0; color: #007bff;">🎯 Opciones de acceso:</h3>
-                            
-                            <!-- Opción 1: Redirección directa -->
-                            <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <h4 style="margin: 0 0 10px 0;">📱 Opción 1: Abrir Flamecol</h4>
-                                <p style="margin: 0 0 10px 0; color: #666;">Abre Flamecol y usa el bookmarklet para activar la sesión</p>
-                                <button onclick="window.open('https://app.flamecol.com/', '_blank')" 
-                                        style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">
-                                    🌐 Abrir Flamecol
-                                </button>
-                                <button onclick="alert('En Flamecol: \\n1. Copia este código\\n2. Pégalo en la barra de direcciones\\n3. Presiona Enter\\n\\nCódigo: ${bookmarkletUrl.replace(/'/g, "\\'")}'); navigator.clipboard.writeText('${bookmarkletUrl.replace(/'/g, "\\'")}');" 
-                                        style="background: #ffc107; color: black; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                                    📋 Copiar código NFC
-                                </button>
-                            </div>
-                            
-                            <!-- Opción 2: Bookmarklet -->
-                            <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <h4 style="margin: 0 0 10px 0;">⭐ Opción 2: Bookmarklet (Recomendado)</h4>
-                                <p style="margin: 0 0 10px 0; color: #666;">Arrastra este botón a tu barra de favoritos para acceso rápido</p>
-                                <a href="${bookmarkletUrl}" 
-                                   style="display: inline-block; background: #6f42c1; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;">
-                                    🔑 Login NFC ${loginData.user.name.split(' ')[0]}
-                                </a>
-                                <span style="color: #666; font-size: 12px;">← Arrastra a favoritos</span>
-                            </div>
-                            
-                            <!-- Opción 3: Credentials para copiar -->
-                            <div style="padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <h4 style="margin: 0 0 10px 0;">🔐 Opción 3: Login manual</h4>
-                                <p style="margin: 0 0 10px 0; color: #666;">Credenciales para login tradicional</p>
-                                <div style="font-family: monospace; background: #f1f1f1; padding: 10px; border-radius: 3px; margin-bottom: 10px;">
-                                    <strong>Usuario:</strong> ${loginData.user.document}<br>
-                                    <strong>Contraseña:</strong> ${loginData.user.document}
-                                </div>
-                                <button onclick="navigator.clipboard.writeText('Usuario: ${loginData.user.document}\\nContraseña: ${loginData.user.document}'); alert('Credenciales copiadas');" 
-                                        style="background: #17a2b8; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                                    📋 Copiar credenciales
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 14px;">
-                            <strong>💡 Recomendación:</strong> Usa la <strong>Opción 2</strong> (bookmarklet) para acceso más rápido en el futuro.
-                        </div>
-                    `;
+                    console.log('🎯 Popup abierto con auto-login configurado');
 
-                    console.log('✅ Interfaz de acceso creada');
+                    // Mostrar instrucciones
+                    setTimeout(() => {
+                        this.result.innerHTML += `
+                            <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 5px; font-size: 14px;">
+                                <strong>📱 ¿Qué está pasando?</strong><br>
+                                1. ✅ Credenciales verificadas<br>
+                                2. 🌐 Flamecol abierto en nueva ventana<br>
+                                3. 🤖 Auto-login ejecutándose...<br>
+                                4. 🎉 Deberías ver login automático
+                            </div>
+                        `;
+                    }, 1000);
 
                 } catch (error) {
-                    throw new Error('Error preparando acceso: ' + error.message);
+                    throw new Error('Error en auto-login: ' + error.message);
                 }
             }
         }
