@@ -187,146 +187,138 @@
             async saveTokenAndRedirect(loginData) {
                 try {
                     this.updateProgress(70, 'Preparando redirección...');
-                    console.log('🚀 Iniciando redirección directa con inyección...');
+                    console.log('🚀 Generando solución alternativa...');
 
                     // Mostrar datos del usuario
                     this.result.innerHTML += `
                         <div style="margin-top: 10px; opacity: 0.9;">
                             👤 ${loginData.user.name}<br>
                             📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Preparando redirección especial...
+                            🔄 Preparando acceso...
                         </div>
                     `;
 
-                    this.updateProgress(80, 'Creando URL con script...');
+                    this.updateProgress(80, 'Creando bookmarklet...');
 
-                    // Crear script de inyección que funcionará en app.flamecol.com
-                    const injectionScript = encodeURIComponent(`
-                        console.log('💉 Script NFC inyectado en Flamecol');
-                        
-                        function injectNFCData() {
+                    // Crear bookmarklet con los datos
+                    const bookmarkletCode = `
+                        javascript:(function(){
                             try {
+                                console.log('🚀 Bookmarklet NFC ejecutado');
                                 const loginData = ${JSON.stringify(loginData)};
-                                console.log('📦 Datos NFC recibidos:', loginData);
                                 
-                                // Función para limpiar y configurar localStorage
-                                function setupSession() {
-                                    console.log('🔧 Configurando sesión NFC...');
-                                    
-                                    // Limpiar localStorage
-                                    localStorage.clear();
-                                    
-                                    // Configurar datos de sesión
-                                    localStorage.setItem('tokenMC', loginData.token);
-                                    localStorage.setItem('nameMC', loginData.user.name);
-                                    localStorage.setItem('userMC', loginData.user.user.toString());
-                                    localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
-                                    localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
-                                    localStorage.setItem('yardMC', loginData.user.yard);
-                                    localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
-                                    localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
-                                    localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
-                                    
-                                    // Verificar que se guardó
-                                    const verification = {
-                                        token: localStorage.getItem('tokenMC') ? 'OK' : 'FALTA',
-                                        name: localStorage.getItem('nameMC'),
-                                        user: localStorage.getItem('userMC'),
-                                        totalItems: localStorage.length
-                                    };
-                                    
-                                    console.log('✅ Verificación localStorage:', verification);
-                                    
-                                    if (verification.token === 'OK') {
-                                        console.log('🎉 Sesión NFC configurada exitosamente');
-                                        
-                                        // Mostrar confirmación visual
-                                        const notification = document.createElement('div');
-                                        notification.style.cssText = \`
-                                            position: fixed; top: 20px; right: 20px; z-index: 10000;
-                                            background: #4CAF50; color: white; padding: 15px 20px;
-                                            border-radius: 5px; font-family: Arial, sans-serif;
-                                            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                                        \`;
-                                        notification.innerHTML = '✅ Sesión NFC activada: ' + loginData.user.name;
-                                        document.body.appendChild(notification);
-                                        
-                                        setTimeout(() => {
-                                            if (notification.parentNode) {
-                                                notification.parentNode.removeChild(notification);
-                                            }
-                                        }, 3000);
-                                        
-                                        // Recargar para activar sesión
-                                        setTimeout(() => {
-                                            console.log('🔄 Recargando para activar sesión...');
-                                            window.location.reload();
-                                        }, 2000);
-                                        
-                                    } else {
-                                        console.error('❌ Error: localStorage no se configuró correctamente');
-                                        alert('Error configurando sesión NFC. Intenta login manual.');
-                                    }
+                                // Verificar que estamos en Flamecol
+                                if (!window.location.hostname.includes('flamecol.com')) {
+                                    alert('Este bookmarklet solo funciona en app.flamecol.com');
+                                    return;
                                 }
                                 
-                                // Ejecutar configuración
-                                setupSession();
+                                // Configurar localStorage
+                                localStorage.clear();
+                                localStorage.setItem('tokenMC', loginData.token);
+                                localStorage.setItem('nameMC', loginData.user.name);
+                                localStorage.setItem('userMC', loginData.user.user.toString());
+                                localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
+                                localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
+                                localStorage.setItem('yardMC', loginData.user.yard);
+                                localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
+                                localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
+                                localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
+                                
+                                // Mostrar notificación
+                                const notification = document.createElement('div');
+                                notification.style.cssText = \`
+                                    position: fixed; top: 20px; right: 20px; z-index: 10000;
+                                    background: #4CAF50; color: white; padding: 15px 20px;
+                                    border-radius: 5px; font-family: Arial, sans-serif;
+                                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                                    animation: slideIn 0.3s ease-out;
+                                \`;
+                                notification.innerHTML = '✅ Sesión NFC activada: ' + loginData.user.name;
+                                document.body.appendChild(notification);
+                                
+                                // Recargar después de 2 segundos
+                                setTimeout(() => {
+                                    console.log('🔄 Recargando para activar sesión...');
+                                    window.location.reload();
+                                }, 2000);
                                 
                             } catch (error) {
-                                console.error('❌ Error en script NFC:', error);
-                                alert('Error en script NFC: ' + error.message);
+                                console.error('❌ Error en bookmarklet:', error);
+                                alert('Error: ' + error.message);
                             }
-                        }
-                        
-                        // Ejecutar inmediatamente o cuando la página cargue
-                        if (document.readyState === 'loading') {
-                            document.addEventListener('DOMContentLoaded', injectNFCData);
-                        } else {
-                            injectNFCData();
-                        }
-                    `);
+                        })();
+                    `;
 
-                    // Crear URL especial con script
-                    const redirectUrl = `https://app.flamecol.com/#nfc_script=${injectionScript}`;
+                    // Crear URL de bookmarklet (sin espacios ni saltos de línea)
+                    const bookmarkletUrl = bookmarkletCode.replace(/\s+/g, ' ').trim();
 
-                    this.updateProgress(90, 'Preparando redirección...');
+                    this.updateProgress(90, 'Creando interfaz...');
+
                     this.updateProgress(100, '¡Listo!');
-                    this.showSuccess('Redirigiendo con datos NFC');
+                    this.showSuccess('Acceso NFC configurado');
 
+                    // Mostrar instrucciones y botones
                     this.result.querySelector('div:last-child').innerHTML = `
                         👤 ${loginData.user.name}<br>
                         📱 Patio: ${loginData.user.currentYard}<br>
-                        🔄 Redirigiendo en 3 segundos...
+                        ✅ Datos preparados
                     `;
 
-                    console.log('📝 URL creada con script de', injectionScript.length, 'caracteres');
-
-                    let countdown = 3;
-                    const timer = setInterval(() => {
-                        countdown--;
-                        this.result.querySelector('div:last-child').innerHTML = `
-                            👤 ${loginData.user.name}<br>
-                            📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Redirigiendo en ${countdown} segundos...
-                        `;
-                        
-                        if (countdown <= 0) {
-                            clearInterval(timer);
-                            console.log('🚀 Redirigiendo con script NFC...');
+                    // Agregar interfaz con opciones
+                    this.result.innerHTML += `
+                        <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+                            <h3 style="margin: 0 0 15px 0; color: #007bff;">🎯 Opciones de acceso:</h3>
                             
-                            // También crear un popup como backup
-                            const popup = window.open(redirectUrl, 'nfc_login', 'width=800,height=600');
-                            if (popup) {
-                                console.log('✅ Popup abierto con script NFC');
-                            } else {
-                                console.log('⚠️ Popup bloqueado, usando redirección normal');
-                                window.location.replace(redirectUrl);
-                            }
-                        }
-                    }, 1000);
+                            <!-- Opción 1: Redirección directa -->
+                            <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h4 style="margin: 0 0 10px 0;">📱 Opción 1: Abrir Flamecol</h4>
+                                <p style="margin: 0 0 10px 0; color: #666;">Abre Flamecol y usa el bookmarklet para activar la sesión</p>
+                                <button onclick="window.open('https://app.flamecol.com/', '_blank')" 
+                                        style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                                    🌐 Abrir Flamecol
+                                </button>
+                                <button onclick="alert('En Flamecol: \\n1. Copia este código\\n2. Pégalo en la barra de direcciones\\n3. Presiona Enter\\n\\nCódigo: ${bookmarkletUrl.replace(/'/g, "\\'")}'); navigator.clipboard.writeText('${bookmarkletUrl.replace(/'/g, "\\'")}');" 
+                                        style="background: #ffc107; color: black; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                                    📋 Copiar código NFC
+                                </button>
+                            </div>
+                            
+                            <!-- Opción 2: Bookmarklet -->
+                            <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h4 style="margin: 0 0 10px 0;">⭐ Opción 2: Bookmarklet (Recomendado)</h4>
+                                <p style="margin: 0 0 10px 0; color: #666;">Arrastra este botón a tu barra de favoritos para acceso rápido</p>
+                                <a href="${bookmarkletUrl}" 
+                                   style="display: inline-block; background: #6f42c1; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;">
+                                    🔑 Login NFC ${loginData.user.name.split(' ')[0]}
+                                </a>
+                                <span style="color: #666; font-size: 12px;">← Arrastra a favoritos</span>
+                            </div>
+                            
+                            <!-- Opción 3: Credentials para copiar -->
+                            <div style="padding: 15px; background: white; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h4 style="margin: 0 0 10px 0;">🔐 Opción 3: Login manual</h4>
+                                <p style="margin: 0 0 10px 0; color: #666;">Credenciales para login tradicional</p>
+                                <div style="font-family: monospace; background: #f1f1f1; padding: 10px; border-radius: 3px; margin-bottom: 10px;">
+                                    <strong>Usuario:</strong> ${loginData.user.document}<br>
+                                    <strong>Contraseña:</strong> ${loginData.user.document}
+                                </div>
+                                <button onclick="navigator.clipboard.writeText('Usuario: ${loginData.user.document}\\nContraseña: ${loginData.user.document}'); alert('Credenciales copiadas');" 
+                                        style="background: #17a2b8; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                                    📋 Copiar credenciales
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: 5px; font-size: 14px;">
+                            <strong>💡 Recomendación:</strong> Usa la <strong>Opción 2</strong> (bookmarklet) para acceso más rápido en el futuro.
+                        </div>
+                    `;
+
+                    console.log('✅ Interfaz de acceso creada');
 
                 } catch (error) {
-                    throw new Error('Error en redirección: ' + error.message);
+                    throw new Error('Error preparando acceso: ' + error.message);
                 }
             }
         }
