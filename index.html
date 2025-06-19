@@ -187,171 +187,143 @@
             async saveTokenAndRedirect(loginData) {
                 try {
                     this.updateProgress(70, 'Preparando redirección...');
-                    console.log('🚀 Iniciando proceso de redirección...');
+                    console.log('🚀 Iniciando redirección directa con inyección...');
 
                     // Mostrar datos del usuario
                     this.result.innerHTML += `
                         <div style="margin-top: 10px; opacity: 0.9;">
                             👤 ${loginData.user.name}<br>
                             📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Preparando sesión...
+                            🔄 Preparando redirección especial...
                         </div>
                     `;
 
-                    // Método 1: Intentar popup con script inyectado
-                    this.updateProgress(80, 'Método 1: Popup con script...');
-                    
-                    try {
-                        console.log('📝 Creando popup con script inyectado...');
-                        
-                        const popup = window.open('', 'nfc_login', 'width=400,height=300,scrollbars=no,resizable=no');
-                        
-                        if (!popup) {
-                            throw new Error('Popup bloqueado');
-                        }
+                    this.updateProgress(80, 'Creando URL con script...');
 
-                        const scriptHTML = `
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <title>Configurando sesión...</title>
-                                <style>
-                                    body { 
-                                        font-family: Arial, sans-serif; 
-                                        display: flex; 
-                                        flex-direction: column;
-                                        justify-content: center; 
-                                        align-items: center; 
-                                        height: 100vh; 
-                                        margin: 0; 
-                                        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); 
-                                        color: white; 
-                                        text-align: center;
-                                    }
-                                    .spinner { 
-                                        border: 3px solid rgba(255,255,255,0.3); 
-                                        border-radius: 50%; 
-                                        border-top: 3px solid white; 
-                                        width: 40px; 
-                                        height: 40px; 
-                                        animation: spin 1s linear infinite; 
-                                        margin: 20px auto; 
-                                    }
-                                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                                </style>
-                            </head>
-                            <body>
-                                <h2>🔄 Configurando sesión</h2>
-                                <div class="spinner"></div>
-                                <p id="status">Preparando datos...</p>
-                                <script>
-                                    console.log('💫 Script iniciado en popup');
-                                    const status = document.getElementById('status');
+                    // Crear script de inyección que funcionará en app.flamecol.com
+                    const injectionScript = encodeURIComponent(`
+                        console.log('💉 Script NFC inyectado en Flamecol');
+                        
+                        function injectNFCData() {
+                            try {
+                                const loginData = ${JSON.stringify(loginData)};
+                                console.log('📦 Datos NFC recibidos:', loginData);
+                                
+                                // Función para limpiar y configurar localStorage
+                                function setupSession() {
+                                    console.log('🔧 Configurando sesión NFC...');
                                     
-                                    setTimeout(() => {
-                                        status.textContent = 'Navegando a Flamecol...';
-                                        console.log('🌐 Redirigiendo a app.flamecol.com');
-                                        window.location.href = 'https://app.flamecol.com/';
-                                    }, 2000);
+                                    // Limpiar localStorage
+                                    localStorage.clear();
                                     
-                                    // Listener para cuando llegue a Flamecol
-                                    window.addEventListener('load', () => {
-                                        if (window.location.hostname === 'app.flamecol.com') {
-                                            console.log('🎯 Llegamos a Flamecol!');
-                                            try {
-                                                const loginData = ${JSON.stringify(loginData)};
-                                                console.log('💾 Configurando localStorage...');
-                                                
-                                                localStorage.clear();
-                                                localStorage.setItem('tokenMC', loginData.token);
-                                                localStorage.setItem('nameMC', loginData.user.name);
-                                                localStorage.setItem('userMC', loginData.user.user.toString());
-                                                localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
-                                                localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
-                                                localStorage.setItem('yardMC', loginData.user.yard);
-                                                localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
-                                                localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
-                                                localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
-                                                
-                                                console.log('✅ localStorage configurado:', {
-                                                    token: localStorage.getItem('tokenMC') ? 'OK' : 'FALTA',
-                                                    name: localStorage.getItem('nameMC'),
-                                                    items: localStorage.length
-                                                });
-                                                
-                                                // Recargar para activar la sesión
-                                                setTimeout(() => {
-                                                    console.log('🔄 Recargando página...');
-                                                    window.location.reload();
-                                                }, 1000);
-                                                
-                                            } catch (error) {
-                                                console.error('❌ Error configurando localStorage:', error);
-                                                alert('Error configurando sesión: ' + error.message);
+                                    // Configurar datos de sesión
+                                    localStorage.setItem('tokenMC', loginData.token);
+                                    localStorage.setItem('nameMC', loginData.user.name);
+                                    localStorage.setItem('userMC', loginData.user.user.toString());
+                                    localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
+                                    localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
+                                    localStorage.setItem('yardMC', loginData.user.yard);
+                                    localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
+                                    localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
+                                    localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
+                                    
+                                    // Verificar que se guardó
+                                    const verification = {
+                                        token: localStorage.getItem('tokenMC') ? 'OK' : 'FALTA',
+                                        name: localStorage.getItem('nameMC'),
+                                        user: localStorage.getItem('userMC'),
+                                        totalItems: localStorage.length
+                                    };
+                                    
+                                    console.log('✅ Verificación localStorage:', verification);
+                                    
+                                    if (verification.token === 'OK') {
+                                        console.log('🎉 Sesión NFC configurada exitosamente');
+                                        
+                                        // Mostrar confirmación visual
+                                        const notification = document.createElement('div');
+                                        notification.style.cssText = \`
+                                            position: fixed; top: 20px; right: 20px; z-index: 10000;
+                                            background: #4CAF50; color: white; padding: 15px 20px;
+                                            border-radius: 5px; font-family: Arial, sans-serif;
+                                            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                                        \`;
+                                        notification.innerHTML = '✅ Sesión NFC activada: ' + loginData.user.name;
+                                        document.body.appendChild(notification);
+                                        
+                                        setTimeout(() => {
+                                            if (notification.parentNode) {
+                                                notification.parentNode.removeChild(notification);
                                             }
-                                        }
-                                    });
-                                </script>
-                            </body>
-                            </html>
-                        `;
-
-                        popup.document.write(scriptHTML);
-                        popup.document.close();
-
-                        this.updateProgress(100, '¡Listo!');
-                        this.showSuccess('Sesión iniciada en nueva ventana');
-
-                        // Actualizar mensaje
-                        this.result.querySelector('div:last-child').innerHTML = `
-                            👤 ${loginData.user.name}<br>
-                            📱 Patio: ${loginData.user.currentYard}<br>
-                            ✅ Abierto en nueva ventana
-                        `;
-
-                        console.log('✅ Popup creado exitosamente');
-                        return;
-
-                    } catch (popupError) {
-                        console.warn('⚠️ Popup falló:', popupError.message);
-                        
-                        // Método 2: Redirección directa con parámetros
-                        this.updateProgress(90, 'Método 2: Redirección directa...');
-                        console.log('🔄 Usando redirección directa con parámetros...');
-
-                        const redirectUrl = new URL('https://app.flamecol.com/');
-                        redirectUrl.searchParams.set('nfc_auto', 'true');
-                        redirectUrl.searchParams.set('nfc_token', loginData.token);
-                        redirectUrl.searchParams.set('nfc_name', encodeURIComponent(loginData.user.name));
-                        redirectUrl.searchParams.set('nfc_user', loginData.user.user.toString());
-                        redirectUrl.searchParams.set('nfc_yard', loginData.user.yard);
-                        redirectUrl.searchParams.set('nfc_currentYard', loginData.user.currentYard.toString());
-
-                        this.updateProgress(100, '¡Listo!');
-                        this.showSuccess('Redirigiendo con datos NFC');
-
-                        this.result.querySelector('div:last-child').innerHTML = `
-                            👤 ${loginData.user.name}<br>
-                            📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Redirigiendo en 3 segundos...
-                        `;
-
-                        let countdown = 3;
-                        const timer = setInterval(() => {
-                            countdown--;
-                            this.result.querySelector('div:last-child').innerHTML = `
-                                👤 ${loginData.user.name}<br>
-                                📱 Patio: ${loginData.user.currentYard}<br>
-                                🔄 Redirigiendo en ${countdown} segundos...
-                            `;
-                            
-                            if (countdown <= 0) {
-                                clearInterval(timer);
-                                console.log('🚀 Redirigiendo con parámetros NFC...');
-                                window.location.replace(redirectUrl.toString());
+                                        }, 3000);
+                                        
+                                        // Recargar para activar sesión
+                                        setTimeout(() => {
+                                            console.log('🔄 Recargando para activar sesión...');
+                                            window.location.reload();
+                                        }, 2000);
+                                        
+                                    } else {
+                                        console.error('❌ Error: localStorage no se configuró correctamente');
+                                        alert('Error configurando sesión NFC. Intenta login manual.');
+                                    }
+                                }
+                                
+                                // Ejecutar configuración
+                                setupSession();
+                                
+                            } catch (error) {
+                                console.error('❌ Error en script NFC:', error);
+                                alert('Error en script NFC: ' + error.message);
                             }
-                        }, 1000);
-                    }
+                        }
+                        
+                        // Ejecutar inmediatamente o cuando la página cargue
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', injectNFCData);
+                        } else {
+                            injectNFCData();
+                        }
+                    `);
+
+                    // Crear URL especial con script
+                    const redirectUrl = `https://app.flamecol.com/#nfc_script=${injectionScript}`;
+
+                    this.updateProgress(90, 'Preparando redirección...');
+                    this.updateProgress(100, '¡Listo!');
+                    this.showSuccess('Redirigiendo con datos NFC');
+
+                    this.result.querySelector('div:last-child').innerHTML = `
+                        👤 ${loginData.user.name}<br>
+                        📱 Patio: ${loginData.user.currentYard}<br>
+                        🔄 Redirigiendo en 3 segundos...
+                    `;
+
+                    console.log('📝 URL creada con script de', injectionScript.length, 'caracteres');
+
+                    let countdown = 3;
+                    const timer = setInterval(() => {
+                        countdown--;
+                        this.result.querySelector('div:last-child').innerHTML = `
+                            👤 ${loginData.user.name}<br>
+                            📱 Patio: ${loginData.user.currentYard}<br>
+                            🔄 Redirigiendo en ${countdown} segundos...
+                        `;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            console.log('🚀 Redirigiendo con script NFC...');
+                            
+                            // También crear un popup como backup
+                            const popup = window.open(redirectUrl, 'nfc_login', 'width=800,height=600');
+                            if (popup) {
+                                console.log('✅ Popup abierto con script NFC');
+                            } else {
+                                console.log('⚠️ Popup bloqueado, usando redirección normal');
+                                window.location.replace(redirectUrl);
+                            }
+                        }
+                    }, 1000);
 
                 } catch (error) {
                     throw new Error('Error en redirección: ' + error.message);
