@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso NFC - Flamecol</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .success {
+            color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid rgba(78, 205, 196, 0.3);
+        }
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        .progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔐</div>
+        <h1>Acceso NFC</h1>
+        <div class="progress">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+        <div class="spinner" id="spinner"></div>
+        <p id="status">Procesando autenticación...</p>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        class NFCAuth {
+            constructor() {
+                this.progress = document.getElementById('progress');
+                this.spinner = document.getElementById('spinner');
+                this.status = document.getElementById('status');
+                this.result = document.getElementById('result');
+            }
+
+            updateProgress(percent, message) {
+                this.progress.style.width = `${percent}%`;
+                this.status.textContent = message;
+            }
+
+            showSuccess(message) {
+                this.spinner.style.display = 'none';
+                this.result.innerHTML = `<div class="success"><strong>✅ ${message}</strong></div>`;
+            }
+
+            showError(message) {
+                this.spinner.style.display = 'none';
+                this.result.innerHTML = `<div class="error"><strong>❌ ${message}</strong></div>`;
+            }
+
+            async login() {
+                try {
+                    // Paso 1: Obtener parámetros de la URL
+                    this.updateProgress(10, 'Obteniendo credenciales...');
+                    console.log('URL actual:', window.location.href);
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const user = urlParams.get('user');
+                    const pass = urlParams.get('pass');
+                    
+                    console.log('Parámetros recibidos:', { user, pass: pass ? '[PRESENTE]' : '[AUSENTE]' });
+
+                    if (!user || !pass) {
+                        throw new Error('Faltan credenciales en la URL. Usa: ?user=DOCUMENTO&pass=CONTRASEÑA');
+                    }
+
+                    // Paso 2: Hacer login
+                    this.updateProgress(30, 'Iniciando sesión...');
+                    console.log('Enviando petición de login...');
+                    
+                    const response = await fetch('https://flamecol.com/api/public/index.php/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            documentNumber: user,
+                            password: pass
+                        })
+                    });
+
+                    console.log('Respuesta del servidor:', response.status, response.statusText);
+
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                    }
+
+                    // Paso 3: Procesar respuesta
+                    this.updateProgress(50, 'Procesando respuesta...');
+                    const data = await response.json();
+                    console.log('Datos recibidos:', data);
+                    
+                    // Manejar array o objeto
+                    const loginData = Array.isArray(data) ? data[0] : data;
+                    console.log('Datos de login procesados:', loginData);
+
+                    if (!loginData || !loginData.token) {
+                        throw new Error('Credenciales inválidas o respuesta incorrecta del servidor');
+                    }
+
+                    // Paso 4: Guardar y redirigir
+                    await this.saveTokenAndRedirect(loginData);
+
+                } catch (error) {
+                    console.error('Error en login:', error);
+                    this.updateProgress(0, 'Error en autenticación');
+                    this.showError(error.message);
+                    
+                    // Mostrar URL para debug
+                    this.result.innerHTML += `
+                        <div style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
+                            <strong>Para debug:</strong><br>
+                            URL: ${window.location.href}<br>
+                            Error: ${error.message}
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        window.location.replace('https://app.flamecol.com/login');
+                    }, 5000);
+                }
+            }
+
+            async saveTokenAndRedirect(loginData) {
+                try {
+                    this.updateProgress(70, 'Guardando datos...');
+                    console.log('Guardando datos en localStorage...');
+
+                    // Limpiar localStorage previo
+                    localStorage.clear();
+
+                    // Guardar datos completos
+                    localStorage.setItem('tokenMC', loginData.token);
+                    localStorage.setItem('nameMC', loginData.user.name);
+                    localStorage.setItem('userMC', loginData.user.user.toString());
+                    localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
+                    localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
+                    localStorage.setItem('yardMC', loginData.user.yard);
+                    localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
+                    localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
+                    localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
+
+                    // Verificar que se guardó
+                    this.updateProgress(90, 'Verificando...');
+                    const savedToken = localStorage.getItem('tokenMC');
+                    const savedName = localStorage.getItem('nameMC');
+                    
+                    console.log('Verificación localStorage:', {
+                        token: savedToken ? savedToken.substring(0, 20) + '...' : 'NO GUARDADO',
+                        name: savedName,
+                        totalItems: localStorage.length
+                    });
+                    
+                    if (!savedToken) {
+                        throw new Error('Error guardando token en localStorage');
+                    }
+
+                    // Éxito
+                    this.updateProgress(100, '¡Listo!');
+                    this.showSuccess('Sesión iniciada correctamente');
+
+                    this.result.innerHTML += `
+                        <div style="margin-top: 10px; opacity: 0.9;">
+                            👤 ${savedName}<br>
+                            📱 Patio: ${loginData.user.currentYard}<br>
+                            🔄 Redirigiendo en 3 segundos...
+                        </div>
+                    `;
+
+                    // Redirigir
+                    let countdown = 3;
+                    const timer = setInterval(() => {
+                        countdown--;
+                        this.result.querySelector('div:last-child').innerHTML = `
+                            👤 ${savedName}<br>
+                            📱 Patio: ${loginData.user.currentYard}<br>
+                            🔄 Redirigiendo en ${countdown} segundos...
+                        `;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            console.log('Redirigiendo a la app...');
+                            window.location.replace('https://app.flamecol.com/');
+                        }
+                    }, 1000);
+
+                } catch (error) {
+                    throw new Error('Error guardando datos: ' + error.message);
+                }
+            }
+        }
+
+        // Iniciar cuando cargue la página
+        document.addEventListener('DOMContentLoaded', () => {
+            const auth = new NFCAuth();
+            auth.login();
+        });
+
+        // Prevenir navegación hacia atrás
+        history.pushState(null, null, window.location.href);
+        window.onpopstate = function () {
+            history.go(1);
+        };
+    </script>
+</body>
+</html>
