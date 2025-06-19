@@ -200,140 +200,199 @@
 
                     this.updateProgress(80, 'Abriendo Flamecol...');
 
-                    // Abrir Flamecol con auto-login
-                    const popup = window.open('https://app.flamecol.com/', 'flamecol_login', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                    // Detectar si es dispositivo móvil
+                    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                     
-                    if (!popup) {
-                        throw new Error('Popup bloqueado. Permite popups y vuelve a intentar.');
-                    }
-
-                    this.updateProgress(90, 'Configurando auto-login...');
-
-                    // Script para auto-llenar el formulario
-                    const autoLoginScript = `
-                        console.log('🚀 Auto-login iniciado');
+                    // En móvil, abrir en la misma ventana para evitar problemas con popups
+                    if (isMobile) {
+                        console.log('📱 Dispositivo móvil detectado, usando misma ventana');
                         
-                        function waitForElement(selector, callback, maxAttempts = 30) {
-                            let attempts = 0;
-                            const interval = setInterval(() => {
-                                attempts++;
-                                const element = document.querySelector(selector);
-                                if (element) {
-                                    clearInterval(interval);
-                                    callback(element);
-                                } else if (attempts >= maxAttempts) {
-                                    clearInterval(interval);
-                                    console.error('❌ Elemento no encontrado:', selector);
-                                }
-                            }, 500);
+                        // Crear URL con datos para auto-login
+                        const autoLoginUrl = `https://app.flamecol.com/#nfc_auto=${encodeURIComponent(JSON.stringify({
+                            document: loginData.user.document,
+                            name: loginData.user.name
+                        }))}`;
+                        
+                        this.updateProgress(100, '¡Redirigiendo!');
+                        this.showSuccess('Redirigiendo a auto-login');
+                        
+                        setTimeout(() => {
+                            window.location.href = autoLoginUrl;
+                        }, 2000);
+                        
+                    } else {
+                        // Para escritorio, usar popup
+                        const popup = window.open('https://app.flamecol.com/', 'flamecol_login', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                        
+                        if (!popup) {
+                            throw new Error('Popup bloqueado. Permite popups y vuelve a intentar.');
                         }
-                        
-                        function performAutoLogin() {
-                            const userDoc = '${loginData.user.document}';
-                            const password = '${loginData.user.document}';
+
+                        this.updateProgress(90, 'Configurando auto-login...');
+
+                        // Script mejorado para Quasar framework
+                        const autoLoginScript = `
+                            console.log('🚀 Auto-login NFC iniciado para Quasar');
                             
-                            console.log('🔍 Buscando formulario de login...');
+                            function waitForElement(selector, callback, maxAttempts = 40) {
+                                let attempts = 0;
+                                const interval = setInterval(() => {
+                                    attempts++;
+                                    const element = document.querySelector(selector);
+                                    if (element) {
+                                        clearInterval(interval);
+                                        console.log('✅ Elemento encontrado:', selector);
+                                        callback(element);
+                                    } else if (attempts >= maxAttempts) {
+                                        clearInterval(interval);
+                                        console.error('❌ Elemento no encontrado después de', maxAttempts * 500, 'ms:', selector);
+                                    }
+                                }, 500);
+                            }
                             
-                            // Esperar a que cargue el formulario
-                            waitForElement('input[type="text"], input[placeholder*="documento"], input[placeholder*="usuario"]', (userInput) => {
-                                console.log('📝 Campo de usuario encontrado');
+                            function triggerEvents(element, value) {
+                                // Eventos para frameworks como Vue/Quasar
+                                element.focus();
+                                element.value = value;
                                 
-                                waitForElement('input[type="password"], input[placeholder*="contraseña"], input[placeholder*="password"]', (passInput) => {
-                                    console.log('🔐 Campo de contraseña encontrado');
+                                // Disparar eventos múltiples para asegurar detección
+                                const events = ['input', 'change', 'keyup', 'blur'];
+                                events.forEach(eventType => {
+                                    element.dispatchEvent(new Event(eventType, { bubbles: true }));
+                                });
+                                
+                                // Para dispositivos móviles, también disparar eventos táctiles
+                                if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                                    element.dispatchEvent(new Event('touchend', { bubbles: true }));
+                                }
+                            }
+                            
+                            function performAutoLogin() {
+                                const userDoc = '${loginData.user.document}';
+                                const password = '${loginData.user.document}';
+                                
+                                console.log('🔍 Buscando campos de Quasar...');
+                                
+                                // Buscar campo de documento (Quasar específico)
+                                waitForElement('input[aria-label*="Documento"], input.q-field__native[type="text"]', (userInput) => {
+                                    console.log('📝 Campo de documento encontrado');
                                     
-                                    waitForElement('button[type="submit"], button:contains("ENTRAR"), button:contains("Entrar"), .btn-primary, button[class*="btn"]', (submitBtn) => {
-                                        console.log('🎯 Botón de envío encontrado');
+                                    // Buscar campo de contraseña
+                                    waitForElement('input[aria-label*="Contraseña"], input.q-field__native[type="password"]', (passInput) => {
+                                        console.log('🔐 Campo de contraseña encontrado');
                                         
-                                        try {
-                                            // Llenar campos
-                                            console.log('📝 Llenando credenciales...');
-                                            userInput.value = userDoc;
-                                            userInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                            userInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                        // Buscar botón de Quasar
+                                        waitForElement('button:has(.q-btn__content), .q-btn:has(span:contains("Entrar")), button[type="submit"], .q-btn', (submitBtn) => {
+                                            console.log('🎯 Botón encontrado');
                                             
-                                            passInput.value = password;
-                                            passInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                            passInput.dispatchEvent(new Event('change', { bubbles: true }));
-                                            
-                                            // Esperar un momento y hacer click
-                                            setTimeout(() => {
-                                                console.log('🚀 Enviando formulario...');
-                                                
-                                                // Mostrar notificación
+                                            try {
+                                                // Mostrar notificación inmediatamente
                                                 const notification = document.createElement('div');
                                                 notification.style.cssText = \`
-                                                    position: fixed; top: 20px; right: 20px; z-index: 10000;
-                                                    background: #4CAF50; color: white; padding: 15px 20px;
-                                                    border-radius: 5px; font-family: Arial, sans-serif;
-                                                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                                                    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                                                    z-index: 10000; background: #4CAF50; color: white; 
+                                                    padding: 12px 20px; border-radius: 8px; 
+                                                    font-family: Arial, sans-serif; font-size: 14px;
+                                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                                    animation: slideDown 0.3s ease-out;
                                                 \`;
                                                 notification.innerHTML = '🔑 Auto-login NFC: ${loginData.user.name}';
                                                 document.body.appendChild(notification);
                                                 
-                                                // Hacer click en el botón
-                                                submitBtn.click();
+                                                // Llenar campos paso a paso
+                                                console.log('📝 Llenando documento...');
+                                                triggerEvents(userInput, userDoc);
                                                 
-                                                console.log('✅ Formulario enviado automáticamente');
+                                                setTimeout(() => {
+                                                    console.log('🔐 Llenando contraseña...');
+                                                    triggerEvents(passInput, password);
+                                                    
+                                                    setTimeout(() => {
+                                                        console.log('🚀 Haciendo click en botón...');
+                                                        
+                                                        // Intentar múltiples formas de hacer click
+                                                        submitBtn.focus();
+                                                        submitBtn.click();
+                                                        
+                                                        // Para móviles, también disparar evento táctil
+                                                        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                                                            submitBtn.dispatchEvent(new Event('touchend', { bubbles: true }));
+                                                        }
+                                                        
+                                                        console.log('✅ Auto-login completado');
+                                                        
+                                                        // Remover notificación después del login
+                                                        setTimeout(() => {
+                                                            if (notification.parentNode) {
+                                                                notification.parentNode.removeChild(notification);
+                                                            }
+                                                        }, 3000);
+                                                        
+                                                    }, 800);
+                                                }, 800);
                                                 
-                                            }, 1000);
-                                            
-                                        } catch (error) {
-                                            console.error('❌ Error llenando formulario:', error);
-                                            alert('Error en auto-login: ' + error.message);
-                                        }
+                                            } catch (error) {
+                                                console.error('❌ Error en auto-login:', error);
+                                                alert('Error en auto-login: ' + error.message + '\\nInténtalo manualmente.');
+                                            }
+                                        });
                                     });
                                 });
-                            });
-                        }
-                        
-                        // Ejecutar cuando la página esté lista
-                        if (document.readyState === 'loading') {
-                            document.addEventListener('DOMContentLoaded', performAutoLogin);
-                        } else {
-                            setTimeout(performAutoLogin, 1000);
-                        }
-                    `;
-
-                    // Inyectar script cuando la ventana cargue
-                    popup.onload = () => {
-                        setTimeout(() => {
-                            try {
-                                console.log('💉 Inyectando script de auto-login...');
-                                
-                                // Crear script element
-                                const script = popup.document.createElement('script');
-                                script.textContent = autoLoginScript;
-                                popup.document.head.appendChild(script);
-                                
-                                console.log('✅ Script inyectado exitosamente');
-                                
-                            } catch (error) {
-                                console.error('❌ Error inyectando script:', error);
-                                console.log('⚠️ Fallback: Usuario deberá hacer login manual');
                             }
-                        }, 2000);
-                    };
+                            
+                            // Ejecutar con múltiples estrategias
+                            if (document.readyState === 'loading') {
+                                document.addEventListener('DOMContentLoaded', () => {
+                                    setTimeout(performAutoLogin, 1500);
+                                });
+                            } else {
+                                setTimeout(performAutoLogin, 1500);
+                            }
+                            
+                            // Fallback adicional
+                            setTimeout(performAutoLogin, 3000);
+                        `;
 
-                    this.updateProgress(100, '¡Listo!');
-                    this.showSuccess('Auto-login configurado');
+                        // Inyectar script cuando la ventana cargue
+                        popup.onload = () => {
+                            setTimeout(() => {
+                                try {
+                                    console.log('💉 Inyectando script de auto-login para Quasar...');
+                                    
+                                    const script = popup.document.createElement('script');
+                                    script.textContent = autoLoginScript;
+                                    popup.document.head.appendChild(script);
+                                    
+                                    console.log('✅ Script inyectado exitosamente');
+                                    
+                                } catch (error) {
+                                    console.error('❌ Error inyectando script:', error);
+                                    alert('No se pudo configurar auto-login. Haz login manualmente con:\\nUsuario: ' + loginData.user.document + '\\nContraseña: ' + loginData.user.document);
+                                }
+                            }, 2000);
+                        };
 
-                    this.result.querySelector('div:last-child').innerHTML = `
-                        👤 ${loginData.user.name}<br>
-                        📱 Patio: ${loginData.user.currentYard}<br>
-                        🚀 Auto-login en proceso...
-                    `;
+                        this.updateProgress(100, '¡Listo!');
+                        this.showSuccess('Auto-login configurado');
 
-                    console.log('🎯 Popup abierto con auto-login configurado');
+                        this.result.querySelector('div:last-child').innerHTML = `
+                            👤 ${loginData.user.name}<br>
+                            📱 Patio: ${loginData.user.currentYard}<br>
+                            🚀 Auto-login en proceso...
+                        `;
+                    }
+
+                    console.log('🎯 Auto-login configurado para', isMobile ? 'móvil' : 'escritorio');
 
                     // Mostrar instrucciones
                     setTimeout(() => {
                         this.result.innerHTML += `
                             <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 5px; font-size: 14px;">
-                                <strong>📱 ¿Qué está pasando?</strong><br>
-                                1. ✅ Credenciales verificadas<br>
-                                2. 🌐 Flamecol abierto en nueva ventana<br>
-                                3. 🤖 Auto-login ejecutándose...<br>
-                                4. 🎉 Deberías ver login automático
+                                <strong>📱 ${isMobile ? 'Móvil' : 'Escritorio'} detectado</strong><br>
+                                ${isMobile ? 
+                                    '🔄 Redirigiendo automáticamente...' : 
+                                    '1. ✅ Credenciales verificadas<br>2. 🌐 Flamecol abierto en popup<br>3. 🤖 Auto-login ejecutándose...'
+                                }
                             </div>
                         `;
                     }, 1000);
