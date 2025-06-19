@@ -187,107 +187,174 @@
             async saveTokenAndRedirect(loginData) {
                 try {
                     this.updateProgress(70, 'Preparando redirección...');
-                    console.log('Configurando sesión con datos de login...');
+                    console.log('🚀 Iniciando proceso de redirección...');
 
                     // Mostrar datos del usuario
                     this.result.innerHTML += `
                         <div style="margin-top: 10px; opacity: 0.9;">
                             👤 ${loginData.user.name}<br>
                             📱 Patio: ${loginData.user.currentYard}<br>
-                            🔄 Configurando sesión...
+                            🔄 Preparando sesión...
                         </div>
                     `;
 
-                    this.updateProgress(80, 'Creando iframe...');
-
-                    // Crear iframe oculto para configurar localStorage
-                    const iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = 'https://app.flamecol.com/';
-                    document.body.appendChild(iframe);
-
-                    // Función para configurar localStorage cuando el iframe cargue
-                    iframe.onload = () => {
-                        try {
-                            console.log('📦 Iframe cargado, configurando localStorage...');
-                            
-                            const iframeWindow = iframe.contentWindow;
-                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                            
-                            // Verificar acceso al iframe
-                            if (!iframeWindow || !iframeWindow.localStorage) {
-                                throw new Error('No se puede acceder al localStorage del iframe');
-                            }
-
-                            this.updateProgress(90, 'Configurando datos...');
-
-                            // Configurar localStorage en el iframe
-                            iframeWindow.localStorage.clear();
-                            iframeWindow.localStorage.setItem('tokenMC', loginData.token);
-                            iframeWindow.localStorage.setItem('nameMC', loginData.user.name);
-                            iframeWindow.localStorage.setItem('userMC', loginData.user.user.toString());
-                            iframeWindow.localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
-                            iframeWindow.localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
-                            iframeWindow.localStorage.setItem('yardMC', loginData.user.yard);
-                            iframeWindow.localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
-                            iframeWindow.localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
-                            iframeWindow.localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
-
-                            console.log('✅ localStorage configurado en iframe:', {
-                                token: iframeWindow.localStorage.getItem('tokenMC') ? 'PRESENTE' : 'FALTA',
-                                name: iframeWindow.localStorage.getItem('nameMC'),
-                                items: iframeWindow.localStorage.length
-                            });
-
-                            this.updateProgress(100, '¡Listo!');
-                            this.showSuccess('Sesión configurada correctamente');
-
-                            // Actualizar mensaje y redirigir
-                            this.result.querySelector('div:last-child').innerHTML = `
-                                👤 ${loginData.user.name}<br>
-                                📱 Patio: ${loginData.user.currentYard}<br>
-                                🔄 Redirigiendo en 2 segundos...
-                            `;
-
-                            setTimeout(() => {
-                                console.log('🚀 Redirigiendo a Flamecol...');
-                                document.body.removeChild(iframe);
-                                window.location.replace('https://app.flamecol.com/');
-                            }, 2000);
-
-                        } catch (iframeError) {
-                            console.error('❌ Error configurando iframe:', iframeError);
-                            
-                            // Fallback: redirección directa con parámetros
-                            console.log('🔄 Usando fallback: redirección con parámetros...');
-                            document.body.removeChild(iframe);
-                            
-                            const redirectUrl = new URL('https://app.flamecol.com/');
-                            redirectUrl.searchParams.set('nfc_token', loginData.token);
-                            redirectUrl.searchParams.set('nfc_name', loginData.user.name);
-                            redirectUrl.searchParams.set('nfc_user', loginData.user.user.toString());
-                            
-                            this.result.querySelector('div:last-child').innerHTML = `
-                                👤 ${loginData.user.name}<br>
-                                📱 Patio: ${loginData.user.currentYard}<br>
-                                🔄 Redirigiendo (método alternativo)...
-                            `;
-                            
-                            setTimeout(() => {
-                                window.location.replace(redirectUrl.toString());
-                            }, 2000);
+                    // Método 1: Intentar popup con script inyectado
+                    this.updateProgress(80, 'Método 1: Popup con script...');
+                    
+                    try {
+                        console.log('📝 Creando popup con script inyectado...');
+                        
+                        const popup = window.open('', 'nfc_login', 'width=400,height=300,scrollbars=no,resizable=no');
+                        
+                        if (!popup) {
+                            throw new Error('Popup bloqueado');
                         }
-                    };
 
-                    // Error cargando iframe
-                    iframe.onerror = () => {
-                        console.error('❌ Error cargando iframe');
-                        document.body.removeChild(iframe);
-                        throw new Error('Error cargando página de destino');
-                    };
+                        const scriptHTML = `
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Configurando sesión...</title>
+                                <style>
+                                    body { 
+                                        font-family: Arial, sans-serif; 
+                                        display: flex; 
+                                        flex-direction: column;
+                                        justify-content: center; 
+                                        align-items: center; 
+                                        height: 100vh; 
+                                        margin: 0; 
+                                        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); 
+                                        color: white; 
+                                        text-align: center;
+                                    }
+                                    .spinner { 
+                                        border: 3px solid rgba(255,255,255,0.3); 
+                                        border-radius: 50%; 
+                                        border-top: 3px solid white; 
+                                        width: 40px; 
+                                        height: 40px; 
+                                        animation: spin 1s linear infinite; 
+                                        margin: 20px auto; 
+                                    }
+                                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                                </style>
+                            </head>
+                            <body>
+                                <h2>🔄 Configurando sesión</h2>
+                                <div class="spinner"></div>
+                                <p id="status">Preparando datos...</p>
+                                <script>
+                                    console.log('💫 Script iniciado en popup');
+                                    const status = document.getElementById('status');
+                                    
+                                    setTimeout(() => {
+                                        status.textContent = 'Navegando a Flamecol...';
+                                        console.log('🌐 Redirigiendo a app.flamecol.com');
+                                        window.location.href = 'https://app.flamecol.com/';
+                                    }, 2000);
+                                    
+                                    // Listener para cuando llegue a Flamecol
+                                    window.addEventListener('load', () => {
+                                        if (window.location.hostname === 'app.flamecol.com') {
+                                            console.log('🎯 Llegamos a Flamecol!');
+                                            try {
+                                                const loginData = ${JSON.stringify(loginData)};
+                                                console.log('💾 Configurando localStorage...');
+                                                
+                                                localStorage.clear();
+                                                localStorage.setItem('tokenMC', loginData.token);
+                                                localStorage.setItem('nameMC', loginData.user.name);
+                                                localStorage.setItem('userMC', loginData.user.user.toString());
+                                                localStorage.setItem('rolesMC', JSON.stringify(loginData.roles));
+                                                localStorage.setItem('permissionsMC', JSON.stringify(loginData.permissions));
+                                                localStorage.setItem('yardMC', loginData.user.yard);
+                                                localStorage.setItem('currentYardMC', loginData.user.currentYard.toString());
+                                                localStorage.setItem('listYardsMC', loginData.user.listYards.toString());
+                                                localStorage.setItem('menuMC', JSON.stringify(loginData.menu));
+                                                
+                                                console.log('✅ localStorage configurado:', {
+                                                    token: localStorage.getItem('tokenMC') ? 'OK' : 'FALTA',
+                                                    name: localStorage.getItem('nameMC'),
+                                                    items: localStorage.length
+                                                });
+                                                
+                                                // Recargar para activar la sesión
+                                                setTimeout(() => {
+                                                    console.log('🔄 Recargando página...');
+                                                    window.location.reload();
+                                                }, 1000);
+                                                
+                                            } catch (error) {
+                                                console.error('❌ Error configurando localStorage:', error);
+                                                alert('Error configurando sesión: ' + error.message);
+                                            }
+                                        }
+                                    });
+                                </script>
+                            </body>
+                            </html>
+                        `;
+
+                        popup.document.write(scriptHTML);
+                        popup.document.close();
+
+                        this.updateProgress(100, '¡Listo!');
+                        this.showSuccess('Sesión iniciada en nueva ventana');
+
+                        // Actualizar mensaje
+                        this.result.querySelector('div:last-child').innerHTML = `
+                            👤 ${loginData.user.name}<br>
+                            📱 Patio: ${loginData.user.currentYard}<br>
+                            ✅ Abierto en nueva ventana
+                        `;
+
+                        console.log('✅ Popup creado exitosamente');
+                        return;
+
+                    } catch (popupError) {
+                        console.warn('⚠️ Popup falló:', popupError.message);
+                        
+                        // Método 2: Redirección directa con parámetros
+                        this.updateProgress(90, 'Método 2: Redirección directa...');
+                        console.log('🔄 Usando redirección directa con parámetros...');
+
+                        const redirectUrl = new URL('https://app.flamecol.com/');
+                        redirectUrl.searchParams.set('nfc_auto', 'true');
+                        redirectUrl.searchParams.set('nfc_token', loginData.token);
+                        redirectUrl.searchParams.set('nfc_name', encodeURIComponent(loginData.user.name));
+                        redirectUrl.searchParams.set('nfc_user', loginData.user.user.toString());
+                        redirectUrl.searchParams.set('nfc_yard', loginData.user.yard);
+                        redirectUrl.searchParams.set('nfc_currentYard', loginData.user.currentYard.toString());
+
+                        this.updateProgress(100, '¡Listo!');
+                        this.showSuccess('Redirigiendo con datos NFC');
+
+                        this.result.querySelector('div:last-child').innerHTML = `
+                            👤 ${loginData.user.name}<br>
+                            📱 Patio: ${loginData.user.currentYard}<br>
+                            🔄 Redirigiendo en 3 segundos...
+                        `;
+
+                        let countdown = 3;
+                        const timer = setInterval(() => {
+                            countdown--;
+                            this.result.querySelector('div:last-child').innerHTML = `
+                                👤 ${loginData.user.name}<br>
+                                📱 Patio: ${loginData.user.currentYard}<br>
+                                🔄 Redirigiendo en ${countdown} segundos...
+                            `;
+                            
+                            if (countdown <= 0) {
+                                clearInterval(timer);
+                                console.log('🚀 Redirigiendo con parámetros NFC...');
+                                window.location.replace(redirectUrl.toString());
+                            }
+                        }, 1000);
+                    }
 
                 } catch (error) {
-                    throw new Error('Error preparando redirección: ' + error.message);
+                    throw new Error('Error en redirección: ' + error.message);
                 }
             }
         }
